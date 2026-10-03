@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Woodens Football 27 V3</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#111;
+  overflow:hidden;
+  font-family:Arial,sans-serif;
+  touch-action:none;
+}
+canvas{
+  display:block;
+  width:100vw;
+  height:100vh;
+  background:#16833b;
+}
+#ui{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+}
+#score{
+  position:absolute;
+  top:15px;
+  left:50%;
+  transform:translateX(-50%);
+  color:white;
+  background:#111c;
+  padding:10px 25px;
+  border-radius:20px;
+  font-size:20px;
+  font-weight:bold;
+}
+#joystick{
+  position:absolute;
+  left:25px;
+  bottom:25px;
+  width:130px;
+  height:130px;
+  border-radius:50%;
+  background:#ffffff35;
+  border:3px solid #ffffff70;
+  pointer-events:auto;
+}
+#stick{
+  position:absolute;
+  width:55px;
+  height:55px;
+  border-radius:50%;
+  background:#fff9;
+  left:35px;
+  top:35px;
+}
+.buttons{
+  position:absolute;
+  right:25px;
+  bottom:30px;
+  display:flex;
+  gap:15px;
+  pointer-events:auto;
+}
+button{
+  width:75px;
+  height:75px;
+  border:0;
+  border-radius:50%;
+  color:white;
+  font-weight:bold;
+  font-size:15px;
+  background:#222c;
+  border:3px solid #ffffff66;
+}
+#shoot{background:#d71919cc}
+#pass{background:#1976d2cc}
+#start{
+  position:absolute;
+  top:60px;
+  right:20px;
+  width:120px;
+  height:45px;
+  border-radius:12px;
+  pointer-events:auto;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="ui">
+  <div id="score">WOODENS FC 0 - 0 VISITEURS</div>
+
+  <button id="start">NOUVEAU MATCH</button>
+
+  <div id="joystick">
+    <div id="stick"></div>
+  </div>
+
+  <div class="buttons">
+    <button id="pass">PASSE</button>
+    <button id="shoot">TIR</button>
+  </div>
+</div>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+let W,H;
+function resize(){
+  W=canvas.width=innerWidth;
+  H=canvas.height=innerHeight;
+}
+resize();
+addEventListener("resize",resize);
+
+let scoreHome=0;
+let scoreAway=0;
+
+const field={
+  x:40,
+  y:70,
+  w:0,
+  h:0
+};
+
+function updateField(){
+  field.w=W-80;
+  field.h=H-130;
+}
+updateField();
+
+const player={
+  x:0,
+  y:0,
+  r:18,
+  speed:4,
+  color:"#1597ff",
+  name:"WOODENS",
+  number:10
+};
+
+const ball={
+  x:0,
+  y:0,
+  r:8,
+  vx:0,
+  vy:0
+};
+
+let teammates=[];
+let opponents=[];
+
+function resetGame(){
+
+  updateField();
+
+  player.x=field.x+field.w*0.28;
+  player.y=field.y+field.h/2;
+
+  ball.x=player.x+30;
+  ball.y=player.y;
+
+  ball.vx=0;
+  ball.vy=0;
+
+  teammates=[
+    {x:field.x+field.w*.18,y:field.y+field.h*.25,r:16,name:"7",color:"#1597ff"},
+    {x:field.x+field.w*.18,y:field.y+field.h*.75,r:16,name:"11",color:"#1597ff"},
+    {x:field.x+field.w*.42,y:field.y+field.h*.2,r:16,name:"8",color:"#1597ff"},
+    {x:field.x+field.w*.42,y:field.y+field.h*.8,r:16,name:"6",color:"#1597ff"},
+    {x:field.x+field.w*.08,y:field.y+field.h*.5,r:17,name:"1",color:"#ffcc00"}
+  ];
+
+  opponents=[
+    {x:field.x+field.w*.75,y:field.y+field.h*.2,r:16,name:"9",color:"#ff3030"},
+    {x:field.x+field.w*.75,y:field.y+field.h*.8,r:16,name:"10",color:"#ff3030"},
+    {x:field.x+field.w*.58,y:field.y+field.h*.3,r:16,name:"8",color:"#ff3030"},
+    {x:field.x+field.w*.58,y:field.y+field.h*.7,r:16,name:"7",color:"#ff3030"},
+    {x:field.x+field.w*.92,y:field.y+field.h*.5,r:17,name:"1",color:"#ffcc00"}
+  ];
+}
+resetGame();
+
+let joyX=0;
+let joyY=0;
+let joystickActive=false;
+
+const joystick=document.getElementById("joystick");
+const stick=document.getElementById("stick");
+
+function joystickMove(clientX,clientY){
+
+  const r=joystick.getBoundingClientRect();
+  const cx=r.left+r.width/2;
+  const cy=r.top+r.height/2;
+
+  let dx=clientX-cx;
+  let dy=clientY-cy;
+
+  const max=38;
+  const dist=Math.hypot(dx,dy);
+
+  if(dist>max){
+    dx=dx/dist*max;
+    dy=dy/dist*max;
+  }
+
+  joyX=dx/max;
+  joyY=dy/max;
+
+  stick.style.left=(35+dx)+"px";
+  stick.style.top=(35+dy)+"px";
+}
+
+joystick.addEventListener("pointerdown",e=>{
+  joystickActive=true;
+  joystickMove(e.clientX,e.clientY);
+});
+
+addEventListener("pointermove",e=>{
+  if(joystickActive) joystickMove(e.clientX,e.clientY);
+});
+
+addEventListener("pointerup",()=>{
+  joystickActive=false;
+  joyX=0;
+  joyY=0;
+  stick.style.left="35px";
+  stick.style.top="35px";
+});
+
+function distance(a,b){
+  return Math.hypot(a.x-b.x,a.y-b.y);
+}
+
+function hasBall(){
+  return distance(player,ball)<35;
+}
+
+function kick(power){
+
+  if(!hasBall()) return;
+
+  let dx=joyX;
+  let dy=joyY;
+
+  if(Math.hypot(dx,dy)<.2){
+    dx=1;
+    dy=0;
+  }
+
+  ball.vx=dx*power;
+  ball.vy=dy*power;
+
+  ball.x=player.x+dx*30;
+  ball.y=player.y+dy*30;
+}
+
+document.getElementById("shoot").addEventListener("pointerdown",()=>{
+  kick(13);
+});
+
+document.getElementById("pass").addEventListener("pointerdown",()=>{
+
+  if(!hasBall()) return;
+
+  let target=teammates[0];
+  let best=99999;
+
+  for(const t of teammates){
+    const d=distance(player,t);
+    if(d<best){
+      best=d;
+      target=t;
+    }
+  }
+
+  let dx=target.x-player.x;
+  let dy=target.y-player.y;
+  let d=Math.hypot(dx,dy);
+
+  ball.vx=dx/d*9;
+  ball.vy=dy/d*9;
+  ball.x=player.x+dx/d*30;
+  ball.y=player.y+dy/d*30;
+});
+
+document.getElementById("start").addEventListener("click",()=>{
+  scoreHome=0;
+  scoreAway=0;
+  updateScore();
+  resetGame();
+});
+
+function updateScore(){
+  document.getElementById("score").textContent=
+    "WOODENS FC "+scoreHome+" - "+scoreAway+" VISITEURS";
+}
+
+function drawField(){
+
+  ctx.fillStyle="#16833b";
+  ctx.fillRect(0,0,W,H);
+
+  ctx.fillStyle="#249447";
+  ctx.fillRect(field.x,field.y,field.w,field.h);
+
+  // lignes
+  ctx.strokeStyle="white";
+  ctx.lineWidth=4;
+
+  ctx.strokeRect(field.x,field.y,field.w,field.h);
+
+  // milieu
+  ctx.beginPath();
+  ctx.moveTo(field.x+field.w/2,field.y);
+  ctx.lineTo(field.x+field.w/2,field.y+field.h);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(
+    field.x+field.w/2,
+    field.y+field.h/2,
+    70,0,Math.PI*2
+  );
+  ctx.stroke();
+
+  // rond central
+  ctx.fillStyle="white";
+  ctx.beginPath();
+  ctx.arc(
+    field.x+field.w/2,
+    field.y+field.h/2,
+    5,0,Math.PI*2
+  );
+  ctx.fill();
+
+  // surfaces
+  ctx.strokeRect(
+    field.x,
+    field.y+field.h*.28,
+    100,
+    field.h*.44
+  );
+
+  ctx.strokeRect(
+    field.x+field.w-100,
+    field.y+field.h*.28,
+    100,
+    field.h*.44
+  );
+
+  // buts
+  ctx.strokeRect(field.x-15,field.y+field.h*.4,15,field.h*.2);
+  ctx.strokeRect(field.x+field.w,field.y+field.h*.4,15,field.h*.2);
+}
+
+function drawPlayer(p,isControlled=false){
+
+  // ombre
+  ctx.fillStyle="#0005";
+  ctx.beginPath();
+  ctx.ellipse(p.x,p.y+18,18,7,0,0,Math.PI*2);
+  ctx.fill();
+
+  // jambes
+  ctx.strokeStyle="#111";
+  ctx.lineWidth=5;
+
+  ctx.beginPath();
+  ctx.moveTo(p.x-6,p.y+10);
+  ctx.lineTo(p.x-8,p.y+22);
+  ctx.moveTo(p.x+6,p.y+10);
+  ctx.lineTo(p.x+8,p.y+22);
+  ctx.stroke();
+
+  // corps
+  ctx.fillStyle=p.color;
+  ctx.beginPath();
+  ctx.roundRect(p.x-12,p.y-8,24,25,6);
+  ctx.fill();
+
+  // tête
+  ctx.fillStyle="#d99a72";
+  ctx.beginPath();
+  ctx.arc(p.x,p.y-17,9,0,Math.PI*2);
+  ctx.fill();
+
+  // cheveux
+  ctx.fillStyle="#24170f";
+  ctx.beginPath();
+  ctx.arc(p.x,p.y-21,9,Math.PI,Math.PI*2);
+  ctx.fill();
+
+  // numéro
+  ctx.fillStyle="white";
+  ctx.font="bold 10px Arial";
+  ctx.textAlign="center";
+  ctx.fillText(p.name,p.x,p.y+8);
+
+  if(isControlled){
+    ctx.strokeStyle="#fff";
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,25,0,Math.PI*2);
+    ctx.stroke();
+  }
+}
+
+function drawBall(){
+
+  ctx.fillStyle="#0005";
+  ctx.beginPath();
+  ctx.ellipse(ball.x,ball.y+7,9,4,0,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle="white";
+  ctx.beginPath();
+  ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.strokeStyle="#222";
+  ctx.lineWidth=1;
+  ctx.stroke();
+}
+
+function movePlayer(){
+
+  player.x+=joyX*player.speed;
+  player.y+=joyY*player.speed;
+
+  player.x=Math.max(field.x+20,
+    Math.min(field.x+field.w-20,player.x));
+
+  player.y=Math.max(field.y+20,
+    Math.min(field.y+field.h-20,player.y));
+
+  if(hasBall()){
+    ball.x=player.x+joyX*22;
+    ball.y=player.y+joyY*22;
+  }
+}
+
+function moveOpponents(){
+
+  for(const o of opponents){
+
+    let dx=ball.x-o.x;
+    let dy=ball.y-o.y;
+    let d=Math.hypot(dx,dy);
+
+    if(d>25){
+      o.x+=dx/d*1.1;
+      o.y+=dy/d*1.1;
+    }
+  }
+}
+
+function ballPhysics(){
+
+  ball.x+=ball.vx;
+  ball.y+=ball.vy;
+
+  ball.vx*=.97;
+  ball.vy*=.97;
+
+  if(ball.y<field.y+8){
+    ball.y=field.y+8;
+    ball.vy*=-.7;
+  }
+
+  if(ball.y>field.y+field.h-8){
+    ball.y=field.y+field.h-8;
+    ball.vy*=-.7;
+  }
+
+  // but gauche
+  if(ball.x<field.x-20){
+
+    if(ball.y>field.y+field.h*.4 &&
+       ball.y<field.y+field.h*.6){
+
+      scoreAway++;
+      resetGame();
+      updateScore();
+      return;
+    }
+
+    ball.x=field.x;
+    ball.vx*=-.7;
+  }
+
+  // but droite
+  if(ball.x>field.x+field.w+20){
+
+    if(ball.y>field.y+field.h*.4 &&
+       ball.y<field.y+field.h*.6){
+
+      scoreHome++;
+      resetGame();
+      updateScore();
+      return;
+    }
+
+    ball.x=field.x+field.w;
+    ball.vx*=-.7;
+  }
+
+  // contact avec adversaires
+  for(const o of opponents){
+
+    if(distance(ball,o)<o.r+ball.r){
+
+      let dx=ball.x-o.x;
+      let dy=ball.y-o.y;
+      let d=Math.hypot(dx,dy)||1;
+
+      ball.vx=dx/d*5;
+      ball.vy=dy/d*5;
+    }
+  }
+}
+
+function draw(){
+
+  ctx.clearRect(0,0,W,H);
+
+  updateField();
+  drawField();
+
+  for(const t of teammates)
+    drawPlayer(t);
+
+  for(const o of opponents)
+    drawPlayer(o);
+
+  drawPlayer(player,true);
+  drawBall();
+
+  movePlayer();
+  moveOpponents();
+  ballPhysics();
+
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+
+</body>
+</html>
