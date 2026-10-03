@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Woodens Football 27 — V2</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
+
+body{
+    margin:0;
+    background:#06152d;
+    color:white;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+header{
+    position:sticky;
+    top:0;
+    z-index:50;
+    text-align:center;
+    padding:14px 10px;
+    background:linear-gradient(135deg,#0b2d5c,#071a38);
+    border-bottom:2px solid #168cff;
+}
+
+.logo{
+    font-size:24px;
+    font-weight:900;
+}
+
+.coins{
+    margin-top:5px;
+    color:#ffd43b;
+    font-weight:bold;
+}
+
+nav{
+    max-width:900px;
+    margin:auto;
+    padding:9px;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:7px;
+    background:#06152d;
+}
+
+button{
+    border:0;
+    border-radius:12px;
+    padding:12px 8px;
+    background:#087cff;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button:active{
+    transform:scale(.95);
+}
+
+button.gold{
+    background:#d99b00;
+    color:#111;
+}
+
+button.red{
+    background:#d93645;
+}
+
+.screen{
+    display:none;
+    max-width:900px;
+    margin:auto;
+    padding:12px 12px 50px;
+}
+
+.screen.active{
+    display:block;
+}
+
+.box{
+    background:#0b2548;
+    border:1px solid #168cff;
+    border-radius:17px;
+    padding:16px;
+    margin:10px 0;
+}
+
+.hero{
+    text-align:center;
+    padding:25px 15px;
+}
+
+.hero h1{
+    font-size:34px;
+    margin:5px;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(145px,1fr));
+    gap:10px;
+}
+
+.card{
+    background:#0b2548;
+    border:2px solid #168cff;
+    border-radius:15px;
+    padding:13px;
+    text-align:center;
+}
+
+.green{
+    border-color:#20d65b;
+}
+
+.blue{
+    border-color:#20a8ff;
+}
+
+.redborder{
+    border-color:#ff4b4b;
+}
+
+.goldborder{
+    border-color:#ffd43b;
+}
+
+.rating{
+    font-size:30px;
+    font-weight:900;
+}
+
+.muted{
+    opacity:.7;
+    font-size:13px;
+}
+
+.progress{
+    height:12px;
+    background:#182f4b;
+    border-radius:20px;
+    overflow:hidden;
+    margin:8px 0;
+}
+
+.progress div{
+    height:100%;
+    background:#20d65b;
+}
+
+.kpi{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:7px;
+}
+
+.kpi div{
+    background:#102e51;
+    border-radius:10px;
+    padding:10px;
+    text-align:center;
+}
+
+.listrow{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+    padding:10px 0;
+    border-bottom:1px solid #244466;
+}
+
+.badge{
+    display:inline-block;
+    padding:5px 8px;
+    border-radius:8px;
+    background:#163c64;
+    font-size:12px;
+}
+
+.smallbtn{
+    padding:8px;
+    font-size:12px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    background:#0b2548;
+}
+
+th,td{
+    padding:9px;
+    border-bottom:1px solid #244466;
+    text-align:center;
+}
+
+th{
+    background:#12365f;
+}
+
+/* TERRAIN */
+
+.pitch{
+    position:relative;
+    height:480px;
+    max-width:760px;
+    margin:12px auto;
+    background:
+    repeating-linear-gradient(
+        90deg,
+        #138044 0,
+        #138044 70px,
+        #11783f 70px,
+        #11783f 140px
+    );
+    border:3px solid white;
+    border-radius:18px;
+    overflow:hidden;
+}
+
+.pitch:before{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:0;
+    bottom:0;
+    border-left:2px solid white;
+}
+
+.pitch:after{
+    content:"";
+    position:absolute;
+    width:105px;
+    height:105px;
+    border:2px solid white;
+    border-radius:50%;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+}
+
+.goal{
+    position:absolute;
+    left:32%;
+    width:36%;
+    height:35px;
+    border:2px solid white;
+}
+
+.goal.top{
+    top:0;
+}
+
+.goal.bottom{
+    bottom:0;
+}
+
+.actor{
+    position:absolute;
+    width:43px;
+    height:43px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:900;
+    border:2px solid white;
+    z-index:5;
+}
+
+.me{
+    background:#ffd43b;
+    color:#111;
+}
+
+.teammate{
+    background:#168cff;
+}
+
+.opp{
+    background:#e94352;
+}
+
+.ball{
+    position:absolute;
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    background:white;
+    color:#111;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:10;
+}
+
+.scorebar{
+    text-align:center;
+    font-size:20px;
+    font-weight:900;
+}
+
+.timer{
+    color:#ffd43b;
+}
+
+.status{
+    text-align:center;
+    min-height:25px;
+    font-weight:bold;
+    margin:8px;
+}
+
+.controls{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:6px;
+}
+
+.controls button{
+    min-height:48px;
+}
+
+.joy{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    max-width:270px;
+    margin:8px auto;
+    gap:5px;
+}
+
+.joy button{
+    font-size:18px;
+}
+
+.toast{
+    position:fixed;
+    bottom:15px;
+    left:50%;
+    transform:translateX(-50%);
+    background:#102e51;
+    border:1px solid #168cff;
+    padding:11px 15px;
+    border-radius:12px;
+    z-index:100;
+    display:none;
+}
+
+@media(max-width:500px){
+
+    .logo{
+        font-size:19px;
+    }
+
+    nav button{
+        font-size:11px;
+        padding:10px 4px;
+    }
+
+    .pitch{
+        height:420px;
+    }
+
+    .hero h1{
+        font-size:28px;
+    }
+
+    .controls{
+        grid-template-columns:repeat(2,1fr);
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+
+<div class="logo">
+⚽ WOODENS FOOTBALL 27 👑
+</div>
+
+<div class="coins">
+🪙 <span id="coins">12500</span> coins
+</div>
+
+</header>
+
+
+<nav>
+
+<button onclick="showScreen('home')">
+🏠 Accueil
+</button>
+
+<button onclick="showScreen('team')">
+👕 Équipe
+</button>
+
+<button onclick="showScreen('market')">
+🔄 Transferts
+</button>
+
+<button onclick="showScreen('competitions')">
+🏆 Compétitions
+</button>
+
+<button onclick="showScreen('upgrade')">
+⬆️ Améliorer
+</button>
+
+<button onclick="showScreen('match');startMatch()">
+⚽ Jouer
+</button>
+
+</nav>
+
+
+<!-- ACCUEIL -->
+
+<section id="home" class="screen active">
+
+<div class="box hero">
+
+<h1>WOODENS FC</h1>
+
+<p>
+Bienvenue dans Woodens Football 27 V2.
+</p>
+
+<div class="kpi">
+
+<div>
+⭐<br>
+<b id="teamRating">78</b><br>
+<span class="muted">Note</span>
+</div>
+
+<div>
+🏆<br>
+<b id="wins">0</b><br>
+<span class="muted">Victoires</span>
+</div>
+
+<div>
+⚽<br>
+<b id="goals">0</b><br>
+<span class="muted">Buts</span>
+</div>
+
+</div>
+
+<br>
+
+<button onclick="showScreen('match');startMatch()">
+⚽ MATCH RAPIDE
+</button>
+
+</div>
+
+
+<div class="box">
+
+<h3>📋 Missions</h3>
+
+<div id="missions"></div>
+
+</div>
+
+</section>
+
+
+<!-- EQUIPE -->
+
+<section id="team" class="screen">
+
+<h2>👕 Mon équipe — 4-3-3</h2>
+
+<div class="box">
+
+<b>Note équipe :</b>
+<span id="teamRating2">78</span> ⭐
+
+</div>
+
+<div class="grid" id="teamList"></div>
+
+</section>
+
+
+<!-- TRANSFERTS -->
+
+<section id="market" class="screen">
+
+<h2>🔄 Marché des transferts</h2>
+
+<div class="box">
+
+<p>
+Achète de nouveaux joueurs pour renforcer Woodens FC.
+</p>
+
+<div id="marketList"></div>
+
+</div>
+
+</section>
+
+
+<!-- COMPETITIONS -->
+
+<section id="competitions" class="screen">
+
+<h2>🏆 Compétitions</h2>
+
+<div class="grid">
+
+<div class="card">
+
+<h3>🏆 Championnat</h3>
+
+<p>10 matchs</p>
+
+<button onclick="chooseCompetition('Championnat')">
+JOUER
+</button>
+
+</div>
+
+
+<div class="card">
+
+<h3>🥇 Coupe</h3>
+
+<p>Élimination directe</p>
+
+<button onclick="chooseCompetition('Coupe')">
+JOUER
+</button>
+
+</div>
+
+
+<div class="card">
+
+<h3>🌟 Tournoi</h3>
+
+<p>Défi spécial</p>
+
+<button onclick="chooseCompetition('Tournoi')">
+JOUER
+</button>
+
+</div>
+
+</div>
+
+
+<div class="box">
+
+<h3>📊 Classement</h3>
+
+<table>
+
+<thead>
+
+<tr>
+<th>#</th>
+<th>Club</th>
+<th>MJ</th>
+<th>Pts</th>
+</tr>
+
+</thead>
+
+<tbody id="standings"></tbody>
+
+</table>
+
+</div>
+
+</section>
+
+
+<!-- AMELIORATION -->
+
+<section id="upgrade" class="screen">
+
+<h2>⬆️ Améliorer les joueurs</h2>
+
+<div class="box">
+
+<p>
+Chaque amélioration coûte 🪙 500.
+</p>
+
+<div id="upgradeList"></div>
+
+</div>
+
+</section>
+
+
+<!-- MATCH -->
+
+<section id="match" class="screen">
+
+<div class="scorebar">
+
+WOODENS FC
+
+<span id="score">
+0 - 0
+</span>
+
+ADVERSAIRE
+
+<br>
+
+<span class="timer">
+⏱️ <
